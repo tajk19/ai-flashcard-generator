@@ -1,0 +1,292 @@
+.ai-flashcard-generator-privacy-note {
+  color: var(--text-muted);
+  margin-block: 0 1.25rem;
+}
+
+.ai-flashcard-generator-prompt-preview {
+  margin: -0.35rem 0 1rem;
+}
+
+.ai-flashcard-generator-prompt-preview summary {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.ai-flashcard-generator-prompt-preview pre {
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+  max-height: 20rem;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.ai-flashcard-generator-workflow {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  max-width: calc(100vw - 2rem);
+  width: min(46rem, calc(100vw - 2rem));
+}
+
+.ai-flashcard-generator-workflow .modal-content {
+  max-height: min(86vh, 56rem);
+  max-height: min(86dvh, 56rem);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.ai-flashcard-generator-workflow .setting-item-info,
+.ai-flashcard-generator-workflow .setting-item-control,
+.ai-flashcard-generator-settings .setting-item-info,
+.ai-flashcard-generator-settings .setting-item-control {
+  min-width: 0;
+}
+
+.ai-flashcard-generator-workflow .setting-item-control,
+.ai-flashcard-generator-settings .setting-item-control {
+  flex-wrap: wrap;
+}
+
+.ai-flashcard-generator-workflow .setting-item-control input,
+.ai-flashcard-generator-workflow .setting-item-control select,
+.ai-flashcard-generator-workflow .setting-item-control textarea,
+.ai-flashcard-generator-settings .setting-item-control input,
+.ai-flashcard-generator-settings .setting-item-control select,
+.ai-flashcard-generator-settings .setting-item-control textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.ai-flashcard-generator-source {
+  color: var(--text-muted);
+  margin-top: -0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.ai-flashcard-generator-custom-prompt {
+  min-height: 12rem;
+  resize: vertical;
+  width: min(34rem, 100%);
+}
+
+.ai-flashcard-generator-error {
+  color: var(--text-error);
+}
+
+.ai-flashcard-generator-path-preview {
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  margin: 0.25rem 0 1rem;
+  overflow-wrap: anywhere;
+  padding: 0.6rem 0.75rem;
+}
+
+.ai-flashcard-generator-path-preview.is-error {
+  color: var(--text-error);
+}
+
+.ai-flashcard-generator-preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.ai-flashcard-generator-card-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ai-flashcard-generator-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.85rem;
+}
+
+.ai-flashcard-generator-card textarea {
+  box-sizing: border-box;
+  min-height: 4rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.ai-flashcard-generator-card-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.ai-flashcard-generator-card-header input[type="checkbox"] {
+  margin: 0;
+}
+
+.ai-flashcard-generator-card-selection {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+}
+
+.ai-flashcard-generator-badges {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+.ai-flashcard-generator-badge {
+  background: var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.5;
+  padding: 0 0.45rem;
+}
+
+.ai-flashcard-generator-badge.is-success {
+  background: rgba(var(--color-green-rgb), 0.16);
+  color: var(--color-green);
+}
+
+.ai-flashcard-generator-badge.is-warning {
+  background: rgba(var(--color-orange-rgb), 0.16);
+  color: var(--color-orange);
+}
+
+.ai-flashcard-generator-badge.is-error {
+  background: rgba(var(--color-red-rgb), 0.16);
+  color: var(--color-red);
+}
+
+.ai-flashcard-generator-badge.is-info {
+  background: rgba(var(--color-blue-rgb), 0.16);
+  color: var(--color-blue);
+}
+
+.ai-flashcard-generator-evidence {
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.ai-flashcard-generator-evidence summary {
+  cursor: pointer;
+}
+
+.ai-flashcard-generator-evidence blockquote {
+  margin-block: 0.55rem 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ai-flashcard-generator-loading {
+  color: var(--text-muted);
+}
+
+.ai-flashcard-generator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.ai-flashcard-generator-actions.is-preview {
+  background: var(--background-primary);
+  border-top: 1px solid var(--background-modifier-border);
+  bottom: 0;
+  padding-block: 0.65rem;
+  position: sticky;
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .ai-flashcard-generator-workflow {
+    max-height: calc(100vh - 0.75rem);
+    max-height: calc(100dvh - 0.75rem);
+    max-width: calc(100vw - 0.75rem);
+    width: calc(100vw - 0.75rem);
+  }
+
+  .ai-flashcard-generator-workflow .setting-item,
+  .ai-flashcard-generator-settings .setting-item {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .ai-flashcard-generator-workflow .setting-item-info,
+  .ai-flashcard-generator-settings .setting-item-info {
+    margin-inline-end: 0;
+  }
+
+  .ai-flashcard-generator-workflow .setting-item-control,
+  .ai-flashcard-generator-settings .setting-item-control {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .ai-flashcard-generator-workflow .setting-item-control input[type="text"],
+  .ai-flashcard-generator-workflow .setting-item-control input[type="number"],
+  .ai-flashcard-generator-workflow .setting-item-control select,
+  .ai-flashcard-generator-workflow .setting-item-control textarea,
+  .ai-flashcard-generator-settings .setting-item-control input[type="text"],
+  .ai-flashcard-generator-settings .setting-item-control select,
+  .ai-flashcard-generator-settings .setting-item-control textarea {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ai-flashcard-generator-workflow input:not([type="checkbox"]),
+  .ai-flashcard-generator-workflow select,
+  .ai-flashcard-generator-workflow textarea,
+  .ai-flashcard-generator-settings input:not([type="checkbox"]),
+  .ai-flashcard-generator-settings select,
+  .ai-flashcard-generator-settings textarea {
+    font-size: max(16px, var(--font-ui-small));
+    min-height: 2.75rem;
+  }
+
+  .ai-flashcard-generator-workflow button,
+  .ai-flashcard-generator-settings button,
+  .ai-flashcard-generator-evidence summary {
+    min-height: 2.75rem;
+  }
+
+  .ai-flashcard-generator-evidence summary {
+    box-sizing: border-box;
+    padding-block: 0.65rem;
+  }
+
+  .ai-flashcard-generator-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-flashcard-generator-actions button,
+  .ai-flashcard-generator-preview-toolbar button {
+    height: auto;
+    white-space: normal;
+  }
+
+  .ai-flashcard-generator-actions.is-preview {
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+  }
+
+  .ai-flashcard-generator-badges {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
