@@ -1,0 +1,27 @@
+{
+  "name": "ai-flashcard-generator",
+  "version": "0.3.3",
+  "description": "Generate customizable Spaced Repetition flashcards from Obsidian notes with Gemini.",
+  "main": "main.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "test": "vitest run",
+    "check": "npm run test && npm run build && npm run verify:release",
+    "verify:release": "node scripts/verify-release.mjs",
+    "ui:smoke": "node scripts/ui-smoke-server.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "esbuild": "^0.25.9",
+    "obsidian": "^1.13.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
+
