@@ -23,7 +23,7 @@ The plugin does not implement scheduling. Spaced Repetition provides the review 
 - Spaced Repetition enabled with a matching root tag. Compatibility targets canonical upstream 1.15.4.
 - A Google account and a Gemini API key from [Google AI Studio](https://aistudio.google.com/). Gemini quotas and charges depend on your model, region and billing settings; check [pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
-Until the plugin is approved in the Obsidian Community directory, use the release ZIP. Copy `main.js`, `manifest.json` and `styles.css` into `<vault>/<config-dir>/plugins/ai-flashcard-generator/`. The configuration directory is normally `.obsidian`. Reload Obsidian and enable the plugin. For an update, replace these three files and keep your existing `data.json`.
+Install **AI Flashcard Generator** from Obsidian's Community plugins directory. For a manual or test installation, use the release ZIP and copy `main.js`, `manifest.json` and `styles.css` into `<vault>/<config-dir>/plugins/ai-flashcard-generator/`. The configuration directory is normally `.obsidian`. Reload Obsidian and enable the plugin. For a manual update, replace these three files and keep your existing `data.json`.
 
 See [platform instructions](docs/INSTALLATION.md) for Linux, Android and iOS. Node.js is needed only to build from source, never to use the plugin.
 
