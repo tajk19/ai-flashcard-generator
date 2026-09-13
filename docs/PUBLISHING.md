@@ -1,6 +1,6 @@
-# Publication handoff — 0.3.3
+# Publication record — 0.3.3
 
-Target: a new public GitHub repository `tajk19/ai-flashcard-generator`, then the official Obsidian Community directory. This document is preparation, not evidence that a repository/release/listing already exists. MIT is the prepared license; the owner can choose another license before the first public upload.
+Published on 2026-09-13 under the MIT license: [GitHub repository](https://github.com/tajk19/ai-flashcard-generator), [release 0.3.3](https://github.com/tajk19/ai-flashcard-generator/releases/tag/0.3.3), and [Obsidian Community listing](https://community.obsidian.md/plugins/ai-flashcard-generator). The initial automated directory review completed with no blocking errors; its public scorecard reported `Health Excellent` and `Review Satisfactory`.
 
 ## GitHub release
 
