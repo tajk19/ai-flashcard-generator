@@ -1159,7 +1159,7 @@ var import_obsidian4 = require("obsidian");
 var AIFlashcardSettingTab = class extends import_obsidian4.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
-    this.plugin = plugin;
+    __publicField(this, "plugin", plugin);
   }
   display() {
     const { containerEl } = this;
