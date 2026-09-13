@@ -37,7 +37,7 @@ No confirmed arbitrary-code execution vulnerability was found in the reviewed fi
 - Closing setup/generation/preview does not save cards. After explicit Create and dispatch of `vault.create`, the write is already committed; closing cannot undo it. Unload/close prevents further work and UI reopening. A folder created before cancellation may remain empty.
 - File writes use Obsidian's vault APIs. External filesystem mutation, symlinks outside the vault, sync engines and malicious plugins are not contained by this plugin. Existing decks are never deliberately overwritten.
 - SR runtime settings access is guarded but relies on its internal data layout; a saved-data/default fallback exists. If auto-detection falls back to defaults, users must verify their settings.
-- Linux native Obsidian, Android and iOS device tests and a live Gemini request are pending. The CI matrix is prepared, but a Linux job result is only available after publishing the repository and running Actions.
+- Linux native Obsidian, Android and iOS device tests and a live Gemini request are pending. GitHub Actions passed the complete check and audit on both Ubuntu and Windows; this validates the code and build, not the native Obsidian UI on those platforms.
 
-The package is a release candidate until native-device checks and community review are completed. See [installation and device checks](INSTALLATION.md).
+Version 0.3.3 is published in the Obsidian Community directory and its initial automated review completed without blocking errors. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).
 
