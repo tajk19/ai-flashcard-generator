@@ -16,12 +16,13 @@ Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file cr
 | Rapid/queued actions could create overlapping workflows | Duplicate calls/writes; reliability/cost risk | Guard workflow launch, phase transitions and closed/unloaded states. |
 | Edited fields could rely only on textarea limits | Oversized data if a control path bypassed the UI cap | Recheck preview quality and field sizes in the writer before any mutation. |
 | Character count alone did not respect UTF-8 filesystem limits | A paid generation could fail on a Linux/mobile filename | Validate 240-byte basenames and 255-byte folder components, with collision suffix space. |
+| CI detected a new moderate `@vitest/mocker` path-traversal advisory after the first local audit | Development/test tooling risk; the plugin runtime bundle was not affected | Upgrade Vitest to 5.0.0 and esbuild to 0.28.2, regenerate the lockfile, and rerun the complete check and audit. |
 
 No confirmed arbitrary-code execution vulnerability was found in the reviewed first-party code. Runtime output is bundled first-party code with `obsidian` as the only external import. There is no eval, shell command execution, remote script loading or telemetry in plugin runtime code.
 
 ## Verification
 
-- `npm audit --json`: 0 reported vulnerabilities across the locked dependency graph, including development tooling, on 2026-09-13. Advisory coverage can change; this is not proof that dependencies have no defects.
+- `npm audit --json`: 0 reported vulnerabilities across the updated 102-package locked dependency graph, including development tooling, on 2026-09-13. The first GitHub CI run exposed a newly published moderate Vitest advisory; the dependencies were upgraded and the clean audit was repeated. Advisory coverage can change; this is not proof that dependencies have no defects.
 - `npm run check`: 80 unit/mock regressions passed; strict TypeScript passed.
 - Release verifier: manifest/package/lock versions match; `isDesktopOnly` is false; main.js matches a fresh browser-targeted bundle; only `obsidian` is an external import; basic credential-pattern scan passed.
 - Responsive browser simulation uses the production workflow and CSS with a small Obsidian UI mock. At a 320 × 720 viewport it verified a scrollable setup screen, a 50-card preview with touch-sized sticky actions, English pair selection, editing, disabled Create when empty, selected-only saving, and that a response arriving 30 seconds after cancellation neither reopens the modal nor creates a file.
