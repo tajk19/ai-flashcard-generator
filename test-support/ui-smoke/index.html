@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AI Flashcard Generator UI simulation</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background-primary: #202020; --background-secondary: #282828;
+      --background-modifier-border: #464646; --text-muted: #bbb;
+      --text-error: #ff8989; --radius-s: 5px; --radius-m: 8px;
+      --font-ui-small: 14px; --font-ui-smaller: 12px;
+      --color-green-rgb: 82, 181, 111; --color-green: #70d68d;
+      --color-orange-rgb: 220, 161, 68; --color-orange: #edbc68;
+      --color-red-rgb: 212, 87, 87; --color-red: #f68c8c;
+      --color-blue-rgb: 91, 160, 230; --color-blue: #9bc8ff;
+      font: 14px/1.45 system-ui, sans-serif;
+    }
+    body { margin: 0; padding: 1rem; background: #191919; color: #eee; }
+    h1 { font-size: 1.25rem; } h2 { font-size: 1.35rem; }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button, select, input[type=text], textarea { border: 1px solid #555; border-radius: 5px; padding: .45rem .6rem; background: #333; }
+    button { cursor: pointer; } button:disabled { opacity: .45; cursor: default; }
+    .mod-cta { background: #7752d9; }
+    .setting-item { display: flex; align-items: center; border-bottom: 1px solid #444; padding: .8rem 0; gap: 1rem; }
+    .setting-item-info { flex: 1 1 auto; }
+    .setting-item-description { color: #bbb; font-size: .9rem; margin-top: .25rem; }
+    .setting-item-control { display: flex; gap: .5rem; justify-content: flex-end; align-items: center; }
+    .setting-item-control input[type=text] { width: 12rem; }
+    .modal-container { position: fixed; inset: 0; background: #0009; display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .modal { background: var(--background-primary); padding: 1rem; border: 1px solid #555; border-radius: 10px; position: relative; }
+    .modal-close-button { align-self: flex-end; flex: 0 0 auto; min-width: 44px; min-height: 44px; }
+    .modal-content { padding-inline: .1rem; }
+    .harness-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: 1rem; }
+    .harness-banner { border: 1px solid #8b7540; background: #3a3324; padding: .75rem; }
+    #saved-content { white-space: pre-wrap; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>AI Flashcard Generator UI smoke test</h1>
+  <p class="harness-banner">Simulation—not native Obsidian. Uses the real workflow modal and plugin CSS with a small Obsidian DOM mock. Gemini responses and vault writes are simulated in memory.</p>
+  <div class="harness-controls">
+    <label>Fake response delay <select id="delay"><option value="0">Immediate</option><option value="5000">5 seconds</option><option value="30000">30 seconds</option></select></label>
+    <label>Response size <select id="card-count"><option value="3">3 pairs</option><option value="50">50 pairs</option></select></label>
+    <button id="open-workflow">Open simulated workflow</button>
+  </div>
+  <p id="status" role="status">Saved decks: 0. Requests: 0.</p>
+  <pre id="saved-content"></pre>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
+
