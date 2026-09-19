@@ -128,15 +128,46 @@ describe("Gemini Interactions client", () => {
 
   it("surfaces HTTP 400 without retrying", async () => {
     requestUrlMock.mockResolvedValue(httpResponse(400, {
-        error: { status: "INVALID_ARGUMENT", message: "Bad schema" }
+        error: { code: "invalid_request", message: "Bad schema" }
     }));
 
     await expect(generateFlashcards(defaultOptions)).rejects.toMatchObject({
       name: "GeminiApiError",
       statusCode: 400,
-      apiStatus: "INVALID_ARGUMENT",
-      message: "Gemini rejected the request. Check the model and prompt settings."
+      apiStatus: "invalid_request",
+      message:
+        "Gemini rejected the request. Check the API key type, model, prompt, and project prerequisites. Error code: invalid_request (HTTP 400)."
     });
+    expect(requestUrlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces a safe nested provider reason without exposing its message", async () => {
+    const privateText = "private-note-and-api-key";
+    requestUrlMock.mockResolvedValue(httpResponse(400, {
+      error: {
+        code: 400,
+        status: "INVALID_ARGUMENT",
+        message: privateText,
+        details: [
+          {
+            "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            reason: "API_KEY_INVALID",
+            metadata: { service: "generativelanguage.googleapis.com" }
+          }
+        ]
+      }
+    }));
+
+    const error = await generateFlashcards(defaultOptions).catch(
+      (caught: unknown) => caught
+    );
+    expect(error).toMatchObject({
+      statusCode: 400,
+      apiStatus: "API_KEY_INVALID",
+      message:
+        "Gemini rejected the request. Check the API key type, model, prompt, and project prerequisites. Error code: API_KEY_INVALID (HTTP 400)."
+    });
+    expect(String(error)).not.toContain(privateText);
     expect(requestUrlMock).toHaveBeenCalledTimes(1);
   });
 
@@ -149,7 +180,10 @@ describe("Gemini Interactions client", () => {
     const generation = generateFlashcards(defaultOptions);
     const rejection = expect(generation).rejects.toMatchObject({
       statusCode: 429,
-      apiStatus: "RESOURCE_EXHAUSTED"
+      apiStatus: "RESOURCE_EXHAUSTED",
+      message: expect.stringContaining(
+        "Error code: RESOURCE_EXHAUSTED (HTTP 429)."
+      )
     });
     await vi.runAllTimersAsync();
     await rejection;
@@ -212,6 +246,7 @@ describe("Gemini Interactions client", () => {
     const httpError = await generateFlashcards(defaultOptions).catch((error: unknown) => error);
     expect(httpError).toBeInstanceOf(GeminiApiError);
     expect(String(httpError)).not.toContain(privateText);
+    expect(String(httpError)).toContain("Error code: invalid_request (HTTP 400)");
 
     requestUrlMock.mockResolvedValueOnce(httpResponse(200, {
       status: privateText,
@@ -324,4 +359,3 @@ describe("Gemini Interactions client", () => {
     ).rejects.toBeInstanceOf(GeminiApiError);
   });
 });
-
