@@ -643,7 +643,7 @@ function resolveOutputSeparator(presetId, basicSeparator, reversedSeparator) {
 
 // services/gemini.ts
 var import_obsidian2 = require("obsidian");
-var INTERACTIONS_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
+var GENERATE_CONTENT_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 var MAX_ATTEMPTS = 3;
 var SAFE_PROVIDER_ERROR_CODES = /* @__PURE__ */ new Set([
   "invalid_request",
@@ -718,29 +718,35 @@ async function generateFlashcards(options) {
   validateGenerationInstructions(options.instructions);
   const model = normalizeModelName(options.model);
   const count = clampCardCount(options.count);
+  const prompt = buildFlashcardPrompt(
+    options.note,
+    count,
+    options.instructions
+  );
   const body = JSON.stringify({
-    model,
-    input: buildFlashcardPrompt(options.note, count, options.instructions),
-    system_instruction: FLASHCARD_SYSTEM_INSTRUCTION,
-    response_format: [
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
       {
-        type: "text",
-        mime_type: "application/json",
-        schema: buildFlashcardSchema(count)
+        role: "user",
+        parts: [{ text: prompt }]
       }
     ],
-    generation_config: {
-      max_output_tokens: MAX_OUTPUT_TOKENS,
-      thinking_level: "minimal",
-      thinking_summaries: "none"
-    },
-    stream: false,
-    background: false,
-    store: false
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseMimeType: "application/json",
+      responseJsonSchema: buildFlashcardSchema(count)
+    }
   });
-  const payload = await requestWithRetry(apiKey, body, options.signal);
+  const payload = await requestWithRetry(
+    apiKey,
+    model,
+    body,
+    options.signal
+  );
   throwIfCancelled2(options.signal);
-  const text = extractInteractionText(payload);
+  const text = extractGenerateContentText(payload);
   try {
     validateResponseTextSize(text);
   } catch (error) {
@@ -766,14 +772,15 @@ function normalizeModelName(value) {
   }
   return model;
 }
-async function requestWithRetry(apiKey, body, signal) {
+async function requestWithRetry(apiKey, model, body, signal) {
   let lastError;
+  const endpoint = `${GENERATE_CONTENT_BASE}/${encodeURIComponent(model)}:generateContent`;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     throwIfCancelled2(signal);
     try {
       const response = await raceWithCancellation(
         (0, import_obsidian2.requestUrl)({
-          url: INTERACTIONS_ENDPOINT,
+          url: endpoint,
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -930,32 +937,50 @@ function defaultHttpErrorCode(statusCode) {
 function withErrorCode(message, statusCode, code) {
   return `${message} Error code: ${code} (HTTP ${statusCode}).`;
 }
-function extractInteractionText(payload) {
+function extractGenerateContentText(payload) {
   if (!isRecord2(payload)) {
     throw new GeminiApiError("Gemini returned an invalid response.");
   }
-  if (payload.status !== "completed") {
+  if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
     throw new GeminiApiError(
-      "Gemini returned an incomplete interaction. No cards were accepted."
+      "Gemini returned no candidates. The prompt may have been blocked."
     );
   }
-  if (!Array.isArray(payload.steps)) {
-    throw new GeminiApiError("Gemini returned no output steps.");
+  const candidate = payload.candidates[0];
+  if (!isRecord2(candidate)) {
+    throw new GeminiApiError("Gemini returned an invalid candidate.");
   }
-  const outputSteps = payload.steps.filter(
-    (step) => isRecord2(step) && step.type === "model_output"
-  );
-  const lastOutput = outputSteps[outputSteps.length - 1];
-  if (!lastOutput || !Array.isArray(lastOutput.content)) {
+  const finishReason = candidate.finishReason;
+  if (typeof finishReason === "string" && finishReason !== "STOP" && finishReason !== "FINISH_REASON_UNSPECIFIED") {
+    throw new GeminiApiError(
+      `Gemini returned an incomplete response (${normalizeFinishReason(finishReason)}). No cards were accepted.`
+    );
+  }
+  if (!isRecord2(candidate.content) || !Array.isArray(candidate.content.parts)) {
     throw new GeminiApiError("Gemini returned no model output.");
   }
-  const text = lastOutput.content.filter(
-    (part) => isRecord2(part) && part.type === "text" && typeof part.text === "string"
+  const text = candidate.content.parts.filter(
+    (part) => isRecord2(part) && part.thought !== true && typeof part.text === "string"
   ).map((part) => part.text).join("");
   if (!text.trim()) {
     throw new GeminiApiError("Gemini returned empty output.");
   }
   return text;
+}
+function normalizeFinishReason(value) {
+  const normalized = value.trim().toUpperCase();
+  const safeReasons = /* @__PURE__ */ new Set([
+    "MAX_TOKENS",
+    "SAFETY",
+    "RECITATION",
+    "LANGUAGE",
+    "BLOCKLIST",
+    "PROHIBITED_CONTENT",
+    "SPII",
+    "MALFORMED_FUNCTION_CALL",
+    "OTHER"
+  ]);
+  return safeReasons.has(normalized) ? normalized : "OTHER";
 }
 function isRetryableStatus(statusCode) {
   return statusCode === 429 || (statusCode != null ? statusCode : 0) >= 500;

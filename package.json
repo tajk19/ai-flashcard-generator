@@ -1,6 +1,6 @@
 {
   "name": "ai-flashcard-generator",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Generate customizable Spaced Repetition flashcards from Obsidian notes with Gemini.",
   "main": "main.js",
   "type": "module",

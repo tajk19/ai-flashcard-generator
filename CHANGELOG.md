@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5
+
+- Replace the beta Interactions request with the standard `generateContent` endpoint for more reliable mobile requests.
+- Keep structured JSON output, the 8,192-token limit, cancellation, bounded responses, retries, and safe error-code diagnostics.
+- Report safe completion reasons such as `MAX_TOKENS` without reflecting provider-controlled messages.
+
 ## 0.3.4
 
 - Show the safe machine-readable Gemini error code together with the HTTP status in the generation dialog.

@@ -43,9 +43,9 @@ The default root tag is `#flashcards/generated`. If you use another root tag in 
 
 ## Privacy and security
 
-Clicking Generate/Regenerate sends the selected source text and chosen prompt instructions directly to `https://generativelanguage.googleapis.com/v1beta/interactions`. An API key is sent in the `x-goog-api-key` header. No other vault notes are read for generation; no client telemetry, advertising, remote code or automatic plugin updates are included.
+Clicking Generate/Regenerate sends the selected source text and chosen prompt instructions directly to the standard Gemini `generateContent` endpoint at `https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`. An API key is sent in the `x-goog-api-key` header. No other vault notes are read for generation; no client telemetry, advertising, remote code or automatic plugin updates are included.
 
-The request uses `store: false`. This does not override Google's data policies. In particular, free-service content may be used to improve Google products. Do not submit sensitive notes unless your Google terms and data controls are appropriate. Read the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
+The request is a stateless single generation and does not create an Interactions conversation. This does not override Google's data policies. In particular, free-service content may be used to improve Google products. Do not submit sensitive notes unless your Google terms and data controls are appropriate. Read the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
 
 API keys use Obsidian Secret Storage; select/create the secret separately on each device as needed. Other installed plugins share Obsidian's privileges: Secret Storage is not a sandbox against malicious plugins.
 

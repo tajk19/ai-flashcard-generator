@@ -1,6 +1,6 @@
 # AI Flashcard Generator
 
-Версия 0.3.4: единый пакет для настольного и мобильного Obsidian. Ошибки Gemini теперь показывают безопасный машинный код и HTTP-статус, не раскрывая текст заметки, промпт или ключ. См. [установку по платформам](docs/INSTALLATION.md), [аудит безопасности](docs/SECURITY-AUDIT.md) и [публикацию](docs/PUBLISHING.md). Подробности актуальной версии также есть в [English README](README.md).
+Версия 0.3.5: единый пакет для настольного и мобильного Obsidian. Для совместимости с мобильными запросами плагин использует стандартный Gemini `generateContent`, сохраняя structured JSON и безопасные коды ошибок. См. [установку по платформам](docs/INSTALLATION.md), [аудит безопасности](docs/SECURITY-AUDIT.md) и [публикацию](docs/PUBLISHING.md). Подробности актуальной версии также есть в [English README](README.md).
 
 Небольшой плагин поверх [Spaced Repetition](https://github.com/st3v3nmw/obsidian-spaced-repetition): он превращает выделение или текущую заметку в проверяемый набор карточек Gemini, показывает обязательный предпросмотр и только после подтверждения создаёт отдельную Markdown-колоду. Алгоритмов интервального повторения в плагине нет.
 
@@ -28,7 +28,7 @@
 - API-ключ через Obsidian Secret Storage: в `data.json` хранится только ID выбранного секрета.
 - Работа на desktop и mobile без Node.js API во время выполнения.
 
-Версия `0.3.4` создаёт новые basic Q&A-колоды для конспектов и двусторонние колоды для встроенного английского профиля. Append в существующую колоду, cloze и поиск дублей по всему vault в этот релиз не входят.
+Версия `0.3.5` создаёт новые basic Q&A-колоды для конспектов и двусторонние колоды для встроенного английского профиля. Append в существующую колоду, cloze и поиск дублей по всему vault в этот релиз не входят.
 
 ## Профили промптов
 
@@ -168,19 +168,19 @@ Gemini должен вернуть для каждой карточки коро
 
 ## Приватность
 
-Текст текущей заметки и выбранные инструкции промпта отправляются напрямую с устройства на `generativelanguage.googleapis.com`. Пользовательский промпт может содержать чувствительные данные, поэтому к нему относится то же предупреждение. Плагин не содержит телеметрии и передаёт `store: false`, но это не отменяет политику Gemini Free Tier: Google указывает, что данные бесплатного тарифа могут использоваться для улучшения продуктов. Не отправляйте через Free Tier приватные или чувствительные заметки.
+Текст текущей заметки и выбранные инструкции промпта отправляются напрямую с устройства на `generativelanguage.googleapis.com`. Пользовательский промпт может содержать чувствительные данные, поэтому к нему относится то же предупреждение. Плагин не содержит телеметрии и выполняет один stateless-запрос без создания диалога Interactions, но это не отменяет политику Gemini Free Tier: Google указывает, что данные бесплатного тарифа могут использоваться для улучшения продуктов. Не отправляйте через Free Tier приватные или чувствительные заметки.
 
 На 29 августа 2026 года входные и выходные токены `gemini-3.1-flash-lite` в Standard Free Tier указаны как бесплатные, однако тарифы и лимиты могут меняться. Проверяйте актуальные условия на странице [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
-## Почему Interactions API
+## Gemini API
 
-Новая интеграция использует рекомендованный Google Interactions API:
+Для надёжной работы на мобильных устройствах интеграция использует стандартный stateless-метод `generateContent`:
 
 ```text
-POST https://generativelanguage.googleapis.com/v1beta/interactions
+POST https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent
 ```
 
-Запрос включает `response_format` с JSON Schema, `thinking_level: minimal`, `max_output_tokens: 8192` и `store: false`. Structured output гарантирует форму ответа, но не достоверность содержимого, поэтому плагин отдельно проверяет типы, размеры полей и evidence.
+Запрос включает `responseMimeType: application/json`, JSON Schema и `maxOutputTokens: 8192`. Structured output гарантирует форму ответа, но не достоверность содержимого, поэтому плагин отдельно проверяет типы, размеры полей и evidence.
 
 ## Проверки
 
@@ -225,7 +225,7 @@ ai-flashcard-generator/
 ## Актуальные API-источники
 
 - [Gemini 3.1 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)
-- [Gemini Interactions API](https://ai.google.dev/api/interactions-api)
+- [Gemini Generate Content API](https://ai.google.dev/api/generate-content)
 - [Gemini structured output](https://ai.google.dev/gemini-api/docs/structured-output)
 - [Obsidian Secret Storage](https://docs.obsidian.md/plugins/guides/secret-storage)
 - [Obsidian requestUrl](https://docs.obsidian.md/Reference/TypeScript%20API/requestUrl)
