@@ -1,4 +1,4 @@
-# Установка 0.3.4: Linux, Windows и телефон
+# Установка 0.3.5: Linux, Windows и телефон
 
 Используется один и тот же пакет: `main.js`, `manifest.json`, `styles.css`. Отдельных APK, DEB или EXE у плагина нет. Нужен Obsidian 1.13.0+ и включённый Spaced Repetition на каждом устройстве.
 

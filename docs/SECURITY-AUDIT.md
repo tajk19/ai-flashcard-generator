@@ -1,4 +1,4 @@
-# Security review — 2026-09-19, release 0.3.4
+# Security review — 2026-09-19, release 0.3.5
 
 Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file creation, settings storage, runtime dependencies and release tooling. Compared with the previously shipped 0.3.2 design; includes verification of fixes retained from an interrupted work session. This is a source review and regression exercise, not an independent penetration test or a guarantee of no vulnerabilities.
 
@@ -17,6 +17,7 @@ Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file cr
 | Edited fields could rely only on textarea limits | Oversized data if a control path bypassed the UI cap | Recheck preview quality and field sizes in the writer before any mutation. |
 | Character count alone did not respect UTF-8 filesystem limits | A paid generation could fail on a Linux/mobile filename | Validate 240-byte basenames and 255-byte folder components, with collision suffix space. |
 | CI detected a new moderate `@vitest/mocker` path-traversal advisory after the first local audit | Development/test tooling risk; the plugin runtime bundle was not affected | Upgrade Vitest to 5.0.0 and esbuild to 0.28.2, regenerate the lockfile, and rerun the complete check and audit. |
+| Mobile requests returned `400 invalid_request` through the beta Interactions endpoint | Generation unavailable despite replacing the key; reliability issue | Use the standard stateless `generateContent` endpoint with the same structured JSON schema and application limits. |
 
 No confirmed arbitrary-code execution vulnerability was found in the reviewed first-party code. Runtime output is bundled first-party code with `obsidian` as the only external import. There is no eval, shell command execution, remote script loading or telemetry in plugin runtime code.
 
@@ -39,4 +40,4 @@ No confirmed arbitrary-code execution vulnerability was found in the reviewed fi
 - SR runtime settings access is guarded but relies on its internal data layout; a saved-data/default fallback exists. If auto-detection falls back to defaults, users must verify their settings.
 - Linux native Obsidian, Android and iOS device tests and a live Gemini request are pending. GitHub Actions passed the complete check and audit on both Ubuntu and Windows; this validates the code and build, not the native Obsidian UI on those platforms.
 
-Version 0.3.4 retains the published mobile/Linux bundle and adds bounded, allowlisted error-code diagnostics. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).
+Version 0.3.5 retains the mobile/Linux bundle and bounded, allowlisted diagnostics, and replaces the beta Interactions transport with standard `generateContent` after a confirmed mobile `400 invalid_request`. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).

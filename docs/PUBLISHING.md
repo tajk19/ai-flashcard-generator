@@ -1,19 +1,19 @@
-# Publication record — 0.3.4
+# Publication record — 0.3.5
 
-Prepared on 2026-09-19 under the MIT license for the existing [GitHub repository](https://github.com/tajk19/ai-flashcard-generator) and [Obsidian Community listing](https://community.obsidian.md/plugins/ai-flashcard-generator). Release 0.3.4 adds safe Gemini error-code diagnostics after a mobile authentication report.
+Prepared on 2026-09-19 under the MIT license for the existing [GitHub repository](https://github.com/tajk19/ai-flashcard-generator) and [Obsidian Community listing](https://community.obsidian.md/plugins/ai-flashcard-generator). Release 0.3.5 replaces the beta Interactions request after a confirmed mobile `400 invalid_request` while retaining safe diagnostics and structured output.
 
 ## GitHub release
 
 1. Publish only this project, with source, lockfile, LICENSE, README, tests and workflows. Do not upload the parent workspace, vault, `data.json`, `.env`, `node_modules` or user notes.
 2. Let the prepared Linux and Windows CI jobs pass. Native device testing is separate; see `INSTALLATION.md`.
-3. Create a tag and release named **0.3.4** (no `v` prefix), matching `manifest.json` on the default branch.
+3. Create a tag and release named **0.3.5** (no `v` prefix), matching `manifest.json` on the default branch.
 4. Attach **main.js**, **manifest.json** and **styles.css** individually. A ZIP alone is not sufficient for Obsidian installation. The install ZIP is an optional convenience attachment.
 
-Suggested release title: `0.3.4 — actionable Gemini error codes`.
+Suggested release title: `0.3.5 — mobile Gemini request fix`.
 
 Suggested description:
 
-> Shows safe machine-readable Gemini error codes and HTTP statuses in the generation dialog while continuing to suppress provider-controlled messages that could echo note or credential data. Recognizes Interactions API codes and nested Google ErrorInfo reasons such as API_KEY_INVALID. Validated with unit/mock tests, strict TypeScript, reproducible browser bundle checks and dependency audit.
+> Fixes mobile `400 invalid_request` failures by moving the stateless flashcard request from the beta Interactions endpoint to standard Gemini `generateContent`. Keeps structured JSON output, the 8,192-token cap, cancellation, bounded responses, retries and safe machine-readable error diagnostics. Validated with unit/mock tests, strict TypeScript, reproducible browser bundle checks and dependency audit.
 
 ## Obsidian Community submission
 
