@@ -34,15 +34,43 @@ const defaultOptions = {
   instructions: "Create atomic cards from the source."
 };
 
-function completedResponse(text: string): MockResponse {
+function completedResponse(
+  text: string,
+  finishReason = "STOP"
+): MockResponse {
   return httpResponse(200, {
-      status: "completed",
-      steps: [
-        {
-          type: "model_output",
-          content: [{ type: "text", text }]
+    candidates: [
+      {
+        finishReason,
+        content: {
+          role: "model",
+          parts: [{ text }]
         }
-      ]
+      }
+    ]
+  });
+}
+
+function emptyCandidateResponse(finishReason = "STOP"): MockResponse {
+  return httpResponse(200, {
+    candidates: [
+      {
+        finishReason,
+        content: {
+          role: "model",
+          parts: []
+        }
+      }
+    ]
+  });
+}
+
+function blockedResponse(): MockResponse {
+  return httpResponse(200, {
+    promptFeedback: {
+      blockReason: "SAFETY"
+    },
+    candidates: []
   });
 }
 
@@ -60,7 +88,7 @@ function successfulResponse(): MockResponse {
   );
 }
 
-describe("Gemini Interactions client", () => {
+describe("Gemini generateContent client", () => {
   beforeEach(() => {
     requestUrlMock.mockReset();
   });
@@ -69,7 +97,7 @@ describe("Gemini Interactions client", () => {
     vi.useRealTimers();
   });
 
-  it("returns structured cards and sends the configured output limit", async () => {
+  it("returns structured cards through generateContent with the configured output limit", async () => {
     requestUrlMock.mockResolvedValue(successfulResponse());
 
     await expect(generateFlashcards(defaultOptions)).resolves.toEqual({
@@ -84,19 +112,29 @@ describe("Gemini Interactions client", () => {
 
     expect(requestUrlMock).toHaveBeenCalledTimes(1);
     const request = requestUrlMock.mock.calls[0]?.[0] as {
+      url: string;
       headers: Record<string, string>;
       body: string;
     };
     const body = JSON.parse(request.body) as {
-      generation_config: { max_output_tokens: number };
-      response_format: Array<{ schema: Record<string, unknown> }>;
+      generationConfig: {
+        maxOutputTokens: number;
+        responseMimeType: string;
+        responseJsonSchema: Record<string, unknown>;
+      };
+      systemInstruction: { parts: Array<{ text: string }> };
     };
 
+    expect(request.url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-test-model:generateContent"
+    );
     expect(request.headers["x-goog-api-key"]).toBe("test-key");
-    expect(body.generation_config.max_output_tokens).toBe(8_192);
-    expect(JSON.stringify(body.response_format[0]?.schema)).toContain(
+    expect(body.generationConfig.maxOutputTokens).toBe(8_192);
+    expect(body.generationConfig.responseMimeType).toBe("application/json");
+    expect(JSON.stringify(body.generationConfig.responseJsonSchema)).toContain(
       "evidence"
     );
+    expect(body.systemInstruction.parts[0]?.text).toContain("flashcards");
   });
 
   it("rejects malformed JSON from a completed interaction", async () => {
@@ -108,21 +146,26 @@ describe("Gemini Interactions client", () => {
     });
   });
 
-  it("rejects incomplete interactions and completed responses without output", async () => {
+  it("rejects incomplete generations and responses without output", async () => {
     requestUrlMock.mockResolvedValueOnce(
-      httpResponse(200, { status: "incomplete", steps: [] })
+      completedResponse("", "MAX_TOKENS")
     );
 
     await expect(generateFlashcards(defaultOptions)).rejects.toThrow(
-      "incomplete interaction"
+      "incomplete response (MAX_TOKENS)"
     );
 
     requestUrlMock.mockResolvedValueOnce(
-      httpResponse(200, { status: "completed", steps: [] })
+      emptyCandidateResponse()
     );
 
     await expect(generateFlashcards(defaultOptions)).rejects.toThrow(
-      "no model output"
+      "empty output"
+    );
+
+    requestUrlMock.mockResolvedValueOnce(blockedResponse());
+    await expect(generateFlashcards(defaultOptions)).rejects.toThrow(
+      "no candidates"
     );
   });
 
@@ -249,7 +292,7 @@ describe("Gemini Interactions client", () => {
     expect(String(httpError)).toContain("Error code: invalid_request (HTTP 400)");
 
     requestUrlMock.mockResolvedValueOnce(httpResponse(200, {
-      status: privateText,
+      candidates: [{ finishReason: privateText }],
       error: { message: privateText }
     }));
     const interactionError = await generateFlashcards(defaultOptions).catch((error: unknown) => error);
