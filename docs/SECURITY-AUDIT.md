@@ -1,4 +1,4 @@
-# Security review — 2026-09-13, release 0.3.3
+# Security review — 2026-09-19, release 0.3.4
 
 Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file creation, settings storage, runtime dependencies and release tooling. Compared with the previously shipped 0.3.2 design; includes verification of fixes retained from an interrupted work session. This is a source review and regression exercise, not an independent penetration test or a guarantee of no vulnerabilities.
 
@@ -6,7 +6,7 @@ Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file cr
 
 | Finding | Impact / classification | Correction |
 | --- | --- | --- |
-| Server-provided error messages could be reflected into UI/errors | Potential disclosure of echoed note text or credentials; medium hardening priority | Show locally generated status messages; do not parse or display provider error bodies. |
+| Server-provided error messages could be reflected into UI/errors | Potential disclosure of echoed note text or credentials; medium hardening priority | Parse only identifier-shaped machine codes from known error fields; never display provider messages. |
 | Response limits applied only to selected model text | Large surrounding JSON could bypass the intended application limit | Check the entire successful response before `JSON.parse`, then validate the extracted payload/fields. |
 | Hanging transport and ambiguous automatic retries | A stuck modal or repeated charge after a lost response; reliability/cost risk | 90-second timeout, cancellation guards, no automatic retry on lost connection or timeout. |
 | Output could target hidden or custom configuration folders | Unintended files in plugin/configuration space | Reject hidden segments, traversal and the actual `vault.configDir` before requesting/saving. |
@@ -23,7 +23,7 @@ No confirmed arbitrary-code execution vulnerability was found in the reviewed fi
 ## Verification
 
 - `npm audit --json`: 0 reported vulnerabilities across the updated 102-package locked dependency graph, including development tooling, on 2026-09-13. The first GitHub CI run exposed a newly published moderate Vitest advisory; the dependencies were upgraded and the clean audit was repeated. Advisory coverage can change; this is not proof that dependencies have no defects.
-- `npm run check`: 80 unit/mock regressions passed; strict TypeScript passed.
+- `npm run check`: 81 unit/mock regressions passed; strict TypeScript passed.
 - Release verifier: manifest/package/lock versions match; `isDesktopOnly` is false; main.js matches a fresh browser-targeted bundle; only `obsidian` is an external import; basic credential-pattern scan passed.
 - Responsive browser simulation uses the production workflow and CSS with a small Obsidian UI mock. At a 320 × 720 viewport it verified a scrollable setup screen, a 50-card preview with touch-sized sticky actions, English pair selection, editing, disabled Create when empty, selected-only saving, and that a response arriving 30 seconds after cancellation neither reopens the modal nor creates a file.
 - No real API key or private note was used during testing.
@@ -39,5 +39,4 @@ No confirmed arbitrary-code execution vulnerability was found in the reviewed fi
 - SR runtime settings access is guarded but relies on its internal data layout; a saved-data/default fallback exists. If auto-detection falls back to defaults, users must verify their settings.
 - Linux native Obsidian, Android and iOS device tests and a live Gemini request are pending. GitHub Actions passed the complete check and audit on both Ubuntu and Windows; this validates the code and build, not the native Obsidian UI on those platforms.
 
-Version 0.3.3 is published in the Obsidian Community directory and its initial automated review completed without blocking errors. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).
-
+Version 0.3.4 retains the published mobile/Linux bundle and adds bounded, allowlisted error-code diagnostics. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).

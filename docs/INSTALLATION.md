@@ -1,4 +1,4 @@
-# Установка 0.3.3: Linux, Windows и телефон
+# Установка 0.3.4: Linux, Windows и телефон
 
 Используется один и тот же пакет: `main.js`, `manifest.json`, `styles.css`. Отдельных APK, DEB или EXE у плагина нет. Нужен Obsidian 1.13.0+ и включённый Spaced Repetition на каждом устройстве.
 
@@ -43,4 +43,3 @@
 Запрос, уже переданный Google, может завершиться даже после отмены. Закрытие окна во время уже подтверждённой записи не отменяет атомарный вызов создания файла.
 
 Актуальные инструкции Obsidian: [разработка для мобильных устройств](https://docs.obsidian.md/Plugins/Getting%20started/Mobile%20development), [синхронизация настроек](https://help.obsidian.md/sync/settings).
-
