@@ -20,6 +20,44 @@ import {
 const INTERACTIONS_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/interactions";
 const MAX_ATTEMPTS = 3;
+const SAFE_PROVIDER_ERROR_CODES = new Set([
+  "invalid_request",
+  "failed_precondition",
+  "out_of_range",
+  "parameter_unknown",
+  "authentication",
+  "permission_denied",
+  "not_found",
+  "model_not_found",
+  "already_exists",
+  "aborted",
+  "rate_limit_exceeded",
+  "safety",
+  "recitation",
+  "language",
+  "prohibited_content",
+  "spii",
+  "blocklist",
+  "content_blocked",
+  "malformed_function_call",
+  "malformed_tool_call",
+  "unexpected_tool_call",
+  "no_image",
+  "too_many_tool_calls",
+  "missing_thought_signature",
+  "INVALID_ARGUMENT",
+  "FAILED_PRECONDITION",
+  "OUT_OF_RANGE",
+  "UNAUTHENTICATED",
+  "PERMISSION_DENIED",
+  "NOT_FOUND",
+  "RESOURCE_EXHAUSTED",
+  "DEADLINE_EXCEEDED",
+  "UNAVAILABLE",
+  "API_KEY_INVALID",
+  "BILLING_DISABLED",
+  "SERVICE_DISABLED"
+]);
 export const GEMINI_REQUEST_TIMEOUT_MS = 90_000;
 
 export class GeminiApiError extends Error {
@@ -166,7 +204,7 @@ async function requestWithRetry(
         }
       }
 
-      const error = createHttpError(response.status);
+      const error = createHttpError(response.status, response.text);
       if (!isRetryableStatus(response.status) || attempt === MAX_ATTEMPTS) {
         throw error;
       }
@@ -202,44 +240,136 @@ async function requestWithRetry(
   throw new GeminiApiError("Gemini request failed.");
 }
 
-function createHttpError(statusCode: number): GeminiApiError {
-  // Do not echo server-provided messages: they can contain request text or keys.
+function createHttpError(
+  statusCode: number,
+  responseText = ""
+): GeminiApiError {
+  // Read only a short machine-readable code from the provider response. Never
+  // echo its message: it can contain request text, model input, or credentials.
+  const providerCode = extractProviderErrorCode(responseText);
+
   if (statusCode === 401 || statusCode === 403) {
+    const code = providerCode ??
+      (statusCode === 401 ? "authentication" : "permission_denied");
     return new GeminiApiError(
-      "Gemini rejected the API key. Select a valid auth key in plugin settings.",
+      withErrorCode(
+        "Gemini rejected authorization. Select a valid auth key in plugin settings.",
+        statusCode,
+        code
+      ),
       statusCode,
-      statusCode === 401 ? "UNAUTHENTICATED" : "PERMISSION_DENIED"
+      code
     );
   }
 
   if (statusCode === 429) {
+    const code = providerCode ?? "rate_limit_exceeded";
     return new GeminiApiError(
-      "Gemini rate limit or quota was reached. Wait a moment and try again.",
+      withErrorCode(
+        "Gemini rate limit or quota was reached. Wait a moment and try again.",
+        statusCode,
+        code
+      ),
       statusCode,
-      "RESOURCE_EXHAUSTED"
+      code
     );
   }
 
   if (statusCode === 408 || statusCode >= 500) {
+    const code = providerCode ??
+      (statusCode === 408 ? "deadline_exceeded" : "unavailable");
     return new GeminiApiError(
-      "Gemini is temporarily unavailable. Try again shortly.",
+      withErrorCode(
+        "Gemini is temporarily unavailable. Try again shortly.",
+        statusCode,
+        code
+      ),
       statusCode,
-      statusCode === 408 ? "DEADLINE_EXCEEDED" : "UNAVAILABLE"
+      code
     );
   }
 
   if (statusCode === 400) {
+    const code = providerCode ?? "invalid_request";
     return new GeminiApiError(
-      "Gemini rejected the request. Check the model and prompt settings.",
+      withErrorCode(
+        "Gemini rejected the request. Check the API key type, model, prompt, and project prerequisites.",
+        statusCode,
+        code
+      ),
       statusCode,
-      "INVALID_ARGUMENT"
+      code
     );
   }
 
+  const code = providerCode ?? defaultHttpErrorCode(statusCode);
   return new GeminiApiError(
-    `Gemini request failed with HTTP ${statusCode}.`,
-    statusCode
+    withErrorCode("Gemini request failed.", statusCode, code),
+    statusCode,
+    code
   );
+}
+
+function extractProviderErrorCode(responseText: string): string | undefined {
+  // Error payloads should be tiny. Avoid parsing an unexpectedly large body,
+  // and only accept identifier-shaped values from known fields.
+  if (!responseText || responseText.length > 64 * 1024) {
+    return undefined;
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(responseText) as unknown;
+  } catch {
+    return undefined;
+  }
+
+  if (!isRecord(payload) || !isRecord(payload.error)) {
+    return undefined;
+  }
+
+  const error = payload.error;
+  const candidates: unknown[] = [];
+  if (Array.isArray(error.details)) {
+    for (const detail of error.details) {
+      if (!isRecord(detail)) continue;
+      candidates.push(detail.reason);
+      if (isRecord(detail.errorInfo)) {
+        candidates.push(detail.errorInfo.reason);
+      }
+    }
+  }
+  if (isRecord(error.errorInfo)) {
+    candidates.push(error.errorInfo.reason);
+  }
+  candidates.push(error.code, error.status);
+
+  for (const candidate of candidates) {
+    const code = normalizeProviderErrorCode(candidate);
+    if (code) return code;
+  }
+
+  return undefined;
+}
+
+function normalizeProviderErrorCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const code = value.trim();
+  return SAFE_PROVIDER_ERROR_CODES.has(code) ? code : undefined;
+}
+
+function defaultHttpErrorCode(statusCode: number): string {
+  if (statusCode === 404) return "not_found";
+  if (statusCode === 409) return "conflict";
+  return "http_error";
+}
+
+function withErrorCode(
+  message: string,
+  statusCode: number,
+  code: string
+): string {
+  return `${message} Error code: ${code} (HTTP ${statusCode}).`;
 }
 
 function extractInteractionText(payload: unknown): string {
@@ -356,4 +486,3 @@ function raceWithCancellation<T>(
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
