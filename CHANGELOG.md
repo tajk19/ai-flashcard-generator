@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+- Show the safe machine-readable Gemini error code together with the HTTP status in the generation dialog.
+- Recognize both Interactions API error codes and nested Google `ErrorInfo.reason` values such as `API_KEY_INVALID`.
+- Keep provider messages private so an echoed note, prompt, or credential cannot be reflected into the UI.
+
 ## 0.3.3
 
 - Add a ribbon command and responsive settings/preview layouts for phones and tablets, including touch targets and a sticky preview action bar.
@@ -56,4 +62,3 @@
 - Store API keys through Obsidian Secret Storage.
 - Validate structured output and avoid overwriting existing decks.
 - Neutralize unintended deck tags, raw HTML, and embeds in generated card text.
-

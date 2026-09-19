@@ -1,10 +1,9 @@
 {
   "id": "ai-flashcard-generator",
   "name": "AI Flashcard Generator",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "minAppVersion": "1.13.0",
   "description": "Generate customizable Spaced Repetition flashcards from notes with Gemini.",
   "author": "Ramazan",
   "isDesktopOnly": false
 }
-

@@ -645,6 +645,44 @@ function resolveOutputSeparator(presetId, basicSeparator, reversedSeparator) {
 var import_obsidian2 = require("obsidian");
 var INTERACTIONS_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 var MAX_ATTEMPTS = 3;
+var SAFE_PROVIDER_ERROR_CODES = /* @__PURE__ */ new Set([
+  "invalid_request",
+  "failed_precondition",
+  "out_of_range",
+  "parameter_unknown",
+  "authentication",
+  "permission_denied",
+  "not_found",
+  "model_not_found",
+  "already_exists",
+  "aborted",
+  "rate_limit_exceeded",
+  "safety",
+  "recitation",
+  "language",
+  "prohibited_content",
+  "spii",
+  "blocklist",
+  "content_blocked",
+  "malformed_function_call",
+  "malformed_tool_call",
+  "unexpected_tool_call",
+  "no_image",
+  "too_many_tool_calls",
+  "missing_thought_signature",
+  "INVALID_ARGUMENT",
+  "FAILED_PRECONDITION",
+  "OUT_OF_RANGE",
+  "UNAUTHENTICATED",
+  "PERMISSION_DENIED",
+  "NOT_FOUND",
+  "RESOURCE_EXHAUSTED",
+  "DEADLINE_EXCEEDED",
+  "UNAVAILABLE",
+  "API_KEY_INVALID",
+  "BILLING_DISABLED",
+  "SERVICE_DISABLED"
+]);
 var GEMINI_REQUEST_TIMEOUT_MS = 9e4;
 var GeminiApiError = class extends Error {
   constructor(message, statusCode, apiStatus) {
@@ -761,7 +799,7 @@ async function requestWithRetry(apiKey, body, signal) {
           throw new GeminiApiError("Gemini returned a malformed HTTP response.");
         }
       }
-      const error = createHttpError(response.status);
+      const error = createHttpError(response.status, response.text);
       if (!isRetryableStatus(response.status) || attempt === MAX_ATTEMPTS) {
         throw error;
       }
@@ -788,39 +826,109 @@ async function requestWithRetry(apiKey, body, signal) {
   }
   throw new GeminiApiError("Gemini request failed.");
 }
-function createHttpError(statusCode) {
+function createHttpError(statusCode, responseText = "") {
+  const providerCode = extractProviderErrorCode(responseText);
   if (statusCode === 401 || statusCode === 403) {
+    const code2 = providerCode != null ? providerCode : statusCode === 401 ? "authentication" : "permission_denied";
     return new GeminiApiError(
-      "Gemini rejected the API key. Select a valid auth key in plugin settings.",
+      withErrorCode(
+        "Gemini rejected authorization. Select a valid auth key in plugin settings.",
+        statusCode,
+        code2
+      ),
       statusCode,
-      statusCode === 401 ? "UNAUTHENTICATED" : "PERMISSION_DENIED"
+      code2
     );
   }
   if (statusCode === 429) {
+    const code2 = providerCode != null ? providerCode : "rate_limit_exceeded";
     return new GeminiApiError(
-      "Gemini rate limit or quota was reached. Wait a moment and try again.",
+      withErrorCode(
+        "Gemini rate limit or quota was reached. Wait a moment and try again.",
+        statusCode,
+        code2
+      ),
       statusCode,
-      "RESOURCE_EXHAUSTED"
+      code2
     );
   }
   if (statusCode === 408 || statusCode >= 500) {
+    const code2 = providerCode != null ? providerCode : statusCode === 408 ? "deadline_exceeded" : "unavailable";
     return new GeminiApiError(
-      "Gemini is temporarily unavailable. Try again shortly.",
+      withErrorCode(
+        "Gemini is temporarily unavailable. Try again shortly.",
+        statusCode,
+        code2
+      ),
       statusCode,
-      statusCode === 408 ? "DEADLINE_EXCEEDED" : "UNAVAILABLE"
+      code2
     );
   }
   if (statusCode === 400) {
+    const code2 = providerCode != null ? providerCode : "invalid_request";
     return new GeminiApiError(
-      "Gemini rejected the request. Check the model and prompt settings.",
+      withErrorCode(
+        "Gemini rejected the request. Check the API key type, model, prompt, and project prerequisites.",
+        statusCode,
+        code2
+      ),
       statusCode,
-      "INVALID_ARGUMENT"
+      code2
     );
   }
+  const code = providerCode != null ? providerCode : defaultHttpErrorCode(statusCode);
   return new GeminiApiError(
-    `Gemini request failed with HTTP ${statusCode}.`,
-    statusCode
+    withErrorCode("Gemini request failed.", statusCode, code),
+    statusCode,
+    code
   );
+}
+function extractProviderErrorCode(responseText) {
+  if (!responseText || responseText.length > 64 * 1024) {
+    return void 0;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(responseText);
+  } catch (e) {
+    return void 0;
+  }
+  if (!isRecord2(payload) || !isRecord2(payload.error)) {
+    return void 0;
+  }
+  const error = payload.error;
+  const candidates = [];
+  if (Array.isArray(error.details)) {
+    for (const detail of error.details) {
+      if (!isRecord2(detail)) continue;
+      candidates.push(detail.reason);
+      if (isRecord2(detail.errorInfo)) {
+        candidates.push(detail.errorInfo.reason);
+      }
+    }
+  }
+  if (isRecord2(error.errorInfo)) {
+    candidates.push(error.errorInfo.reason);
+  }
+  candidates.push(error.code, error.status);
+  for (const candidate of candidates) {
+    const code = normalizeProviderErrorCode(candidate);
+    if (code) return code;
+  }
+  return void 0;
+}
+function normalizeProviderErrorCode(value) {
+  if (typeof value !== "string") return void 0;
+  const code = value.trim();
+  return SAFE_PROVIDER_ERROR_CODES.has(code) ? code : void 0;
+}
+function defaultHttpErrorCode(statusCode) {
+  if (statusCode === 404) return "not_found";
+  if (statusCode === 409) return "conflict";
+  return "http_error";
+}
+function withErrorCode(message, statusCode, code) {
+  return `${message} Error code: ${code} (HTTP ${statusCode}).`;
 }
 function extractInteractionText(payload) {
   if (!isRecord2(payload)) {
@@ -2200,4 +2308,3 @@ var AIFlashcardPlugin = class extends import_obsidian6.Plugin {
     }
   }
 };
-

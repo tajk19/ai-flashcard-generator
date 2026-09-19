@@ -10,6 +10,7 @@ Generate flashcards from the current note or selection with Google Gemini, revie
 - Atomic notes, English vocabulary, and one saved custom prompt. Custom prompts support `{{count}}` and `{{targetLanguage}}`.
 - Mandatory preview with editable fronts/backs, inclusion checkboxes and evidence quotes.
 - Local evidence matching, duplicate/conflict detection and length warnings. Evidence supports human review; it does not prove a card is correct.
+- Safe Gemini diagnostics show the provider error code and HTTP status without reflecting provider-controlled messages.
 - English pairs are saved as native bidirectional cards: `break the ice:::разрядить обстановку`.
 - Reads basic/reversed separators from Spaced Repetition; an explicit manual override is available.
 - Exact deck tags, a chosen folder and filename, and collision-safe creation of new files only.
@@ -75,4 +76,3 @@ GitHub Actions is configured to run tests/build/audit on Ubuntu and Windows. Tho
 ## License
 
 [MIT](LICENSE). This is an independent plugin. It integrates with Spaced Repetition's Markdown format; its scheduler and source code are not bundled.
-
