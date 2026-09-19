@@ -17,8 +17,8 @@ import {
   validateSourceText
 } from "./generation-limits";
 
-const INTERACTIONS_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/interactions";
+const GENERATE_CONTENT_BASE =
+  "https://generativelanguage.googleapis.com/v1beta/models";
 const MAX_ATTEMPTS = 3;
 const SAFE_PROVIDER_ERROR_CODES = new Set([
   "invalid_request",
@@ -106,30 +106,36 @@ export async function generateFlashcards(
 
   const model = normalizeModelName(options.model);
   const count = clampCardCount(options.count);
+  const prompt = buildFlashcardPrompt(
+    options.note,
+    count,
+    options.instructions
+  );
   const body = JSON.stringify({
-    model,
-    input: buildFlashcardPrompt(options.note, count, options.instructions),
-    system_instruction: FLASHCARD_SYSTEM_INSTRUCTION,
-    response_format: [
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
       {
-        type: "text",
-        mime_type: "application/json",
-        schema: buildFlashcardSchema(count)
+        role: "user",
+        parts: [{ text: prompt }]
       }
     ],
-    generation_config: {
-      max_output_tokens: MAX_OUTPUT_TOKENS,
-      thinking_level: "minimal",
-      thinking_summaries: "none"
-    },
-    stream: false,
-    background: false,
-    store: false
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseMimeType: "application/json",
+      responseJsonSchema: buildFlashcardSchema(count)
+    }
   });
 
-  const payload = await requestWithRetry(apiKey, body, options.signal);
+  const payload = await requestWithRetry(
+    apiKey,
+    model,
+    body,
+    options.signal
+  );
   throwIfCancelled(options.signal);
-  const text = extractInteractionText(payload);
+  const text = extractGenerateContentText(payload);
   try {
     validateResponseTextSize(text);
   } catch (error) {
@@ -164,17 +170,20 @@ function normalizeModelName(value: string): string {
 
 async function requestWithRetry(
   apiKey: string,
+  model: string,
   body: string,
   signal?: AbortSignal
 ): Promise<unknown> {
   let lastError: unknown;
+  const endpoint =
+    `${GENERATE_CONTENT_BASE}/${encodeURIComponent(model)}:generateContent`;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     throwIfCancelled(signal);
     try {
       const response = await raceWithCancellation(
         requestUrl({
-          url: INTERACTIONS_ENDPOINT,
+          url: endpoint,
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -372,35 +381,43 @@ function withErrorCode(
   return `${message} Error code: ${code} (HTTP ${statusCode}).`;
 }
 
-function extractInteractionText(payload: unknown): string {
+function extractGenerateContentText(payload: unknown): string {
   if (!isRecord(payload)) {
     throw new GeminiApiError("Gemini returned an invalid response.");
   }
 
-  if (payload.status !== "completed") {
+  if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
     throw new GeminiApiError(
-      "Gemini returned an incomplete interaction. No cards were accepted."
+      "Gemini returned no candidates. The prompt may have been blocked."
     );
   }
 
-  if (!Array.isArray(payload.steps)) {
-    throw new GeminiApiError("Gemini returned no output steps.");
+  const candidate = payload.candidates[0];
+  if (!isRecord(candidate)) {
+    throw new GeminiApiError("Gemini returned an invalid candidate.");
   }
 
-  const outputSteps = payload.steps.filter(
-    (step): step is Record<string, unknown> =>
-      isRecord(step) && step.type === "model_output"
-  );
-  const lastOutput = outputSteps[outputSteps.length - 1];
+  const finishReason = candidate.finishReason;
+  if (
+    typeof finishReason === "string" &&
+    finishReason !== "STOP" &&
+    finishReason !== "FINISH_REASON_UNSPECIFIED"
+  ) {
+    throw new GeminiApiError(
+      `Gemini returned an incomplete response (${normalizeFinishReason(finishReason)}). No cards were accepted.`
+    );
+  }
 
-  if (!lastOutput || !Array.isArray(lastOutput.content)) {
+  if (!isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) {
     throw new GeminiApiError("Gemini returned no model output.");
   }
 
-  const text = lastOutput.content
+  const text = candidate.content.parts
     .filter(
       (part): part is Record<string, unknown> =>
-        isRecord(part) && part.type === "text" && typeof part.text === "string"
+        isRecord(part) &&
+        part.thought !== true &&
+        typeof part.text === "string"
     )
     .map((part) => part.text as string)
     .join("");
@@ -410,6 +427,22 @@ function extractInteractionText(payload: unknown): string {
   }
 
   return text;
+}
+
+function normalizeFinishReason(value: string): string {
+  const normalized = value.trim().toUpperCase();
+  const safeReasons = new Set([
+    "MAX_TOKENS",
+    "SAFETY",
+    "RECITATION",
+    "LANGUAGE",
+    "BLOCKLIST",
+    "PROHIBITED_CONTENT",
+    "SPII",
+    "MALFORMED_FUNCTION_CALL",
+    "OTHER"
+  ]);
+  return safeReasons.has(normalized) ? normalized : "OTHER";
 }
 
 function isRetryableStatus(statusCode: number | undefined): boolean {
