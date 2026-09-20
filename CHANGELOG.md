@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.6
+
+- Use Gemini's current `generationConfig.responseFormat.text` structured-output request instead of the rejected legacy `responseJsonSchema` field.
+- If a regional API rollout rejects structured output with HTTP 400, retry once using JSON MIME mode and the same locally validated card contract.
+- Keep authorization failures single-attempt and preserve safe error-code diagnostics without exposing note contents.
+
 ## 0.3.5
 
 - Replace the beta Interactions request with the standard `generateContent` endpoint for more reliable mobile requests.

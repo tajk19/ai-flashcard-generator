@@ -11,6 +11,7 @@ Generate flashcards from the current note or selection with Google Gemini, revie
 - Mandatory preview with editable fronts/backs, inclusion checkboxes and evidence quotes.
 - Local evidence matching, duplicate/conflict detection and length warnings. Evidence supports human review; it does not prove a card is correct.
 - Safe Gemini diagnostics show the provider error code and HTTP status without reflecting provider-controlled messages.
+- Uses Gemini's current structured-output contract and a one-time JSON-mode fallback when that contract is rejected with HTTP 400.
 - English pairs are saved as native bidirectional cards: `break the ice:::разрядить обстановку`.
 - Reads basic/reversed separators from Spaced Repetition; an explicit manual override is available.
 - Exact deck tags, a chosen folder and filename, and collision-safe creation of new files only.
@@ -45,7 +46,7 @@ The default root tag is `#flashcards/generated`. If you use another root tag in 
 
 Clicking Generate/Regenerate sends the selected source text and chosen prompt instructions directly to the standard Gemini `generateContent` endpoint at `https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent`. An API key is sent in the `x-goog-api-key` header. No other vault notes are read for generation; no client telemetry, advertising, remote code or automatic plugin updates are included.
 
-The request is a stateless single generation and does not create an Interactions conversation. This does not override Google's data policies. In particular, free-service content may be used to improve Google products. Do not submit sensitive notes unless your Google terms and data controls are appropriate. Read the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
+Generation is stateless and does not create an Interactions conversation. A rejected structured-output request may be repeated once in JSON MIME mode; explicit 429/5xx responses can also be retried as documented below. This does not override Google's data policies. In particular, free-service content may be used to improve Google products. Do not submit sensitive notes unless your Google terms and data controls are appropriate. Read the [Gemini API terms](https://ai.google.dev/gemini-api/terms).
 
 API keys use Obsidian Secret Storage; select/create the secret separately on each device as needed. Other installed plugins share Obsidian's privileges: Secret Storage is not a sandbox against malicious plugins.
 
