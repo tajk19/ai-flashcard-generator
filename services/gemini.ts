@@ -20,6 +20,10 @@ import {
 const GENERATE_CONTENT_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
 const MAX_ATTEMPTS = 3;
+const JSON_ONLY_FALLBACK_INSTRUCTION = `
+
+Return JSON only, with exactly this shape:
+{"cards":[{"question":"...","answer":"...","evidence":"a short verbatim quote from the source"}]}`;
 const SAFE_PROVIDER_ERROR_CODES = new Set([
   "invalid_request",
   "failed_precondition",
@@ -111,29 +115,30 @@ export async function generateFlashcards(
     count,
     options.instructions
   );
-  const body = JSON.stringify({
-    systemInstruction: {
-      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
-    },
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }]
-      }
-    ],
-    generationConfig: {
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      responseMimeType: "application/json",
-      responseJsonSchema: buildFlashcardSchema(count)
+  let payload: unknown;
+  try {
+    payload = await requestWithRetry(
+      apiKey,
+      model,
+      buildStructuredRequestBody(prompt, count),
+      options.signal
+    );
+  } catch (error) {
+    if (!shouldUseJsonOnlyFallback(error)) {
+      throw error;
     }
-  });
 
-  const payload = await requestWithRetry(
-    apiKey,
-    model,
-    body,
-    options.signal
-  );
+    // A rejected HTTP 400 request did not start a generation. Retry once with
+    // Gemini's broadly supported JSON MIME mode so older regional/mobile API
+    // rollouts are not blocked by a structured-output field mismatch.
+    throwIfCancelled(options.signal);
+    payload = await requestWithRetry(
+      apiKey,
+      model,
+      buildJsonOnlyRequestBody(prompt),
+      options.signal
+    );
+  }
   throwIfCancelled(options.signal);
   const text = extractGenerateContentText(payload);
   try {
@@ -152,6 +157,59 @@ export async function generateFlashcards(
   }
 
   return validateFlashcardResponse(parsed, count);
+}
+
+function buildStructuredRequestBody(prompt: string, count: number): string {
+  return JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseFormat: {
+        text: {
+          mimeType: "application/json",
+          schema: buildFlashcardSchema(count)
+        }
+      }
+    }
+  });
+}
+
+function buildJsonOnlyRequestBody(prompt: string): string {
+  return JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${prompt}${JSON_ONLY_FALLBACK_INSTRUCTION}` }]
+      }
+    ],
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseMimeType: "application/json"
+    }
+  });
+}
+
+function shouldUseJsonOnlyFallback(error: unknown): boolean {
+  if (!(error instanceof GeminiApiError) || error.statusCode !== 400) {
+    return false;
+  }
+
+  return error.apiStatus === undefined || new Set([
+    "invalid_request",
+    "INVALID_ARGUMENT",
+    "parameter_unknown"
+  ]).has(error.apiStatus);
 }
 
 function normalizeModelName(value: string): string {
