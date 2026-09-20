@@ -645,6 +645,10 @@ function resolveOutputSeparator(presetId, basicSeparator, reversedSeparator) {
 var import_obsidian2 = require("obsidian");
 var GENERATE_CONTENT_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 var MAX_ATTEMPTS = 3;
+var JSON_ONLY_FALLBACK_INSTRUCTION = `
+
+Return JSON only, with exactly this shape:
+{"cards":[{"question":"...","answer":"...","evidence":"a short verbatim quote from the source"}]}`;
 var SAFE_PROVIDER_ERROR_CODES = /* @__PURE__ */ new Set([
   "invalid_request",
   "failed_precondition",
@@ -723,28 +727,26 @@ async function generateFlashcards(options) {
     count,
     options.instructions
   );
-  const body = JSON.stringify({
-    systemInstruction: {
-      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
-    },
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }]
-      }
-    ],
-    generationConfig: {
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      responseMimeType: "application/json",
-      responseJsonSchema: buildFlashcardSchema(count)
+  let payload;
+  try {
+    payload = await requestWithRetry(
+      apiKey,
+      model,
+      buildStructuredRequestBody(prompt, count),
+      options.signal
+    );
+  } catch (error) {
+    if (!shouldUseJsonOnlyFallback(error)) {
+      throw error;
     }
-  });
-  const payload = await requestWithRetry(
-    apiKey,
-    model,
-    body,
-    options.signal
-  );
+    throwIfCancelled2(options.signal);
+    payload = await requestWithRetry(
+      apiKey,
+      model,
+      buildJsonOnlyRequestBody(prompt),
+      options.signal
+    );
+  }
   throwIfCancelled2(options.signal);
   const text = extractGenerateContentText(payload);
   try {
@@ -761,6 +763,55 @@ async function generateFlashcards(options) {
     throw new GeminiApiError("Gemini returned malformed JSON.");
   }
   return validateFlashcardResponse(parsed, count);
+}
+function buildStructuredRequestBody(prompt, count) {
+  return JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseFormat: {
+        text: {
+          mimeType: "application/json",
+          schema: buildFlashcardSchema(count)
+        }
+      }
+    }
+  });
+}
+function buildJsonOnlyRequestBody(prompt) {
+  return JSON.stringify({
+    systemInstruction: {
+      parts: [{ text: FLASHCARD_SYSTEM_INSTRUCTION }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${prompt}${JSON_ONLY_FALLBACK_INSTRUCTION}` }]
+      }
+    ],
+    generationConfig: {
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      responseMimeType: "application/json"
+    }
+  });
+}
+function shouldUseJsonOnlyFallback(error) {
+  if (!(error instanceof GeminiApiError) || error.statusCode !== 400) {
+    return false;
+  }
+  return error.apiStatus === void 0 || (/* @__PURE__ */ new Set([
+    "invalid_request",
+    "INVALID_ARGUMENT",
+    "parameter_unknown"
+  ])).has(error.apiStatus);
 }
 function normalizeModelName(value) {
   const model = value.trim().replace(/^models\//, "");
