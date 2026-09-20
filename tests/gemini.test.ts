@@ -119,8 +119,12 @@ describe("Gemini generateContent client", () => {
     const body = JSON.parse(request.body) as {
       generationConfig: {
         maxOutputTokens: number;
-        responseMimeType: string;
-        responseJsonSchema: Record<string, unknown>;
+        responseFormat: {
+          text: {
+            mimeType: string;
+            schema: Record<string, unknown>;
+          };
+        };
       };
       systemInstruction: { parts: Array<{ text: string }> };
     };
@@ -130,11 +134,46 @@ describe("Gemini generateContent client", () => {
     );
     expect(request.headers["x-goog-api-key"]).toBe("test-key");
     expect(body.generationConfig.maxOutputTokens).toBe(8_192);
-    expect(body.generationConfig.responseMimeType).toBe("application/json");
-    expect(JSON.stringify(body.generationConfig.responseJsonSchema)).toContain(
+    expect(body.generationConfig.responseFormat.text.mimeType).toBe(
+      "application/json"
+    );
+    expect(JSON.stringify(body.generationConfig.responseFormat.text.schema)).toContain(
       "evidence"
     );
     expect(body.systemInstruction.parts[0]?.text).toContain("flashcards");
+  });
+
+  it("falls back to JSON MIME mode when structured output is rejected", async () => {
+    requestUrlMock
+      .mockResolvedValueOnce(httpResponse(400, {
+        error: { status: "INVALID_ARGUMENT", message: "Unknown field" }
+      }))
+      .mockResolvedValueOnce(successfulResponse());
+
+    await expect(generateFlashcards(defaultOptions)).resolves.toHaveProperty(
+      "cards.0.evidence"
+    );
+
+    expect(requestUrlMock).toHaveBeenCalledTimes(2);
+    const firstBody = JSON.parse(
+      (requestUrlMock.mock.calls[0]?.[0] as { body: string }).body
+    ) as { generationConfig: Record<string, unknown> };
+    const secondBody = JSON.parse(
+      (requestUrlMock.mock.calls[1]?.[0] as { body: string }).body
+    ) as {
+      generationConfig: Record<string, unknown>;
+      contents: Array<{ parts: Array<{ text: string }> }>;
+    };
+
+    expect(firstBody.generationConfig).toHaveProperty("responseFormat");
+    expect(secondBody.generationConfig).not.toHaveProperty("responseFormat");
+    expect(secondBody.generationConfig).toMatchObject({
+      maxOutputTokens: 8_192,
+      responseMimeType: "application/json"
+    });
+    expect(secondBody.contents[0]?.parts[0]?.text).toContain(
+      "Return JSON only, with exactly this shape"
+    );
   });
 
   it("rejects malformed JSON from a completed interaction", async () => {
@@ -169,7 +208,7 @@ describe("Gemini generateContent client", () => {
     );
   });
 
-  it("surfaces HTTP 400 without retrying", async () => {
+  it("surfaces HTTP 400 after one compatibility fallback", async () => {
     requestUrlMock.mockResolvedValue(httpResponse(400, {
         error: { code: "invalid_request", message: "Bad schema" }
     }));
@@ -181,7 +220,7 @@ describe("Gemini generateContent client", () => {
       message:
         "Gemini rejected the request. Check the API key type, model, prompt, and project prerequisites. Error code: invalid_request (HTTP 400)."
     });
-    expect(requestUrlMock).toHaveBeenCalledTimes(1);
+    expect(requestUrlMock).toHaveBeenCalledTimes(2);
   });
 
   it("surfaces a safe nested provider reason without exposing its message", async () => {
@@ -283,9 +322,13 @@ describe("Gemini generateContent client", () => {
 
   it("does not expose provider-echoed notes or secrets in errors", async () => {
     const privateText = "private-note-and-api-key";
-    requestUrlMock.mockResolvedValueOnce(httpResponse(400, {
-      error: { message: privateText, status: privateText }
-    }));
+    requestUrlMock
+      .mockResolvedValueOnce(httpResponse(400, {
+        error: { message: privateText, status: privateText }
+      }))
+      .mockResolvedValueOnce(httpResponse(400, {
+        error: { message: privateText, status: privateText }
+      }));
     const httpError = await generateFlashcards(defaultOptions).catch((error: unknown) => error);
     expect(httpError).toBeInstanceOf(GeminiApiError);
     expect(String(httpError)).not.toContain(privateText);
