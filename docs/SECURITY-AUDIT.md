@@ -1,4 +1,4 @@
-# Security review — 2026-09-19, release 0.3.5
+# Security review — 2026-09-20, release 0.3.6
 
 Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file creation, settings storage, runtime dependencies and release tooling. Compared with the previously shipped 0.3.2 design; includes verification of fixes retained from an interrupted work session. This is a source review and regression exercise, not an independent penetration test or a guarantee of no vulnerabilities.
 
@@ -18,13 +18,14 @@ Scope: first-party TypeScript/CSS, Gemini transport, generated Markdown, file cr
 | Character count alone did not respect UTF-8 filesystem limits | A paid generation could fail on a Linux/mobile filename | Validate 240-byte basenames and 255-byte folder components, with collision suffix space. |
 | CI detected a new moderate `@vitest/mocker` path-traversal advisory after the first local audit | Development/test tooling risk; the plugin runtime bundle was not affected | Upgrade Vitest to 5.0.0 and esbuild to 0.28.2, regenerate the lockfile, and rerun the complete check and audit. |
 | Mobile requests returned `400 invalid_request` through the beta Interactions endpoint | Generation unavailable despite replacing the key; reliability issue | Use the standard stateless `generateContent` endpoint with the same structured JSON schema and application limits. |
+| The legacy `responseJsonSchema` request was still rejected with HTTP 400 on mobile | Generation remained unavailable on the affected Gemini API rollout | Use the current `generationConfig.responseFormat.text` contract; retry one rejected 400 once in JSON MIME mode, while retaining full local validation. Authorization and quota errors do not use this fallback. |
 
 No confirmed arbitrary-code execution vulnerability was found in the reviewed first-party code. Runtime output is bundled first-party code with `obsidian` as the only external import. There is no eval, shell command execution, remote script loading or telemetry in plugin runtime code.
 
 ## Verification
 
-- `npm audit --json`: 0 reported vulnerabilities across the updated 102-package locked dependency graph, including development tooling, on 2026-09-13. The first GitHub CI run exposed a newly published moderate Vitest advisory; the dependencies were upgraded and the clean audit was repeated. Advisory coverage can change; this is not proof that dependencies have no defects.
-- `npm run check`: 81 unit/mock regressions passed; strict TypeScript passed.
+- `npm audit --json`: 0 reported vulnerabilities across the 102-package locked dependency graph, including development tooling, on 2026-09-20. The first GitHub CI run had exposed a newly published moderate Vitest advisory; the dependencies were upgraded and the clean audit was repeated. Advisory coverage can change; this is not proof that dependencies have no defects.
+- `npm run check`: 82 unit/mock regressions passed; strict TypeScript passed.
 - Release verifier: manifest/package/lock versions match; `isDesktopOnly` is false; main.js matches a fresh browser-targeted bundle; only `obsidian` is an external import; basic credential-pattern scan passed.
 - Responsive browser simulation uses the production workflow and CSS with a small Obsidian UI mock. At a 320 × 720 viewport it verified a scrollable setup screen, a 50-card preview with touch-sized sticky actions, English pair selection, editing, disabled Create when empty, selected-only saving, and that a response arriving 30 seconds after cancellation neither reopens the modal nor creates a file.
 - No real API key or private note was used during testing.
@@ -40,4 +41,4 @@ No confirmed arbitrary-code execution vulnerability was found in the reviewed fi
 - SR runtime settings access is guarded but relies on its internal data layout; a saved-data/default fallback exists. If auto-detection falls back to defaults, users must verify their settings.
 - Linux native Obsidian, Android and iOS device tests and a live Gemini request are pending. GitHub Actions passed the complete check and audit on both Ubuntu and Windows; this validates the code and build, not the native Obsidian UI on those platforms.
 
-Version 0.3.5 retains the mobile/Linux bundle and bounded, allowlisted diagnostics, and replaces the beta Interactions transport with standard `generateContent` after a confirmed mobile `400 invalid_request`. Native-device checks remain pending, so mobile/Linux UI support should still be treated as not physically certified. See [installation and device checks](INSTALLATION.md).
+Version 0.3.6 retains the mobile/Linux bundle and bounded, allowlisted diagnostics, uses the current Gemini structured-output request, and adds a narrow JSON-mode fallback for rejected schema requests. The fix is covered by mocks but still needs confirmation with the affected phone and live Gemini project. See [installation and device checks](INSTALLATION.md).
