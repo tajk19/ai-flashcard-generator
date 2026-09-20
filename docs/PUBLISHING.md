@@ -1,19 +1,19 @@
-# Publication record — 0.3.5
+# Publication record — 0.3.6
 
-Prepared on 2026-09-19 under the MIT license for the existing [GitHub repository](https://github.com/tajk19/ai-flashcard-generator) and [Obsidian Community listing](https://community.obsidian.md/plugins/ai-flashcard-generator). Release 0.3.5 replaces the beta Interactions request after a confirmed mobile `400 invalid_request` while retaining safe diagnostics and structured output.
+Prepared on 2026-09-20 under the MIT license for the existing [GitHub repository](https://github.com/tajk19/ai-flashcard-generator) and [Obsidian Community listing](https://community.obsidian.md/plugins/ai-flashcard-generator). Release 0.3.6 replaces the rejected legacy structured-output field and adds a compatibility fallback while retaining safe diagnostics and strict local validation.
 
 ## GitHub release
 
 1. Publish only this project, with source, lockfile, LICENSE, README, tests and workflows. Do not upload the parent workspace, vault, `data.json`, `.env`, `node_modules` or user notes.
 2. Let the prepared Linux and Windows CI jobs pass. Native device testing is separate; see `INSTALLATION.md`.
-3. Create a tag and release named **0.3.5** (no `v` prefix), matching `manifest.json` on the default branch.
+3. Create a tag and release named **0.3.6** (no `v` prefix), matching `manifest.json` on the default branch.
 4. Attach **main.js**, **manifest.json** and **styles.css** individually. A ZIP alone is not sufficient for Obsidian installation. The install ZIP is an optional convenience attachment.
 
-Suggested release title: `0.3.5 — mobile Gemini request fix`.
+Suggested release title: `0.3.6 — Gemini structured-output compatibility fix`.
 
 Suggested description:
 
-> Fixes mobile `400 invalid_request` failures by moving the stateless flashcard request from the beta Interactions endpoint to standard Gemini `generateContent`. Keeps structured JSON output, the 8,192-token cap, cancellation, bounded responses, retries and safe machine-readable error diagnostics. Validated with unit/mock tests, strict TypeScript, reproducible browser bundle checks and dependency audit.
+> Fixes persistent mobile `400 invalid_request` failures by replacing the legacy `responseJsonSchema` request with Gemini's current `generationConfig.responseFormat.text` contract. If a regional rollout rejects that structured-output field, the plugin retries once in JSON MIME mode and applies the same strict local response validation. Keeps the 8,192-token cap, cancellation, bounded responses and safe machine-readable diagnostics. Validated with 82 unit/mock tests, strict TypeScript, reproducible browser bundle checks and a clean dependency audit.
 
 ## Obsidian Community submission
 
